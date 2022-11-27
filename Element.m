@@ -11,6 +11,7 @@ classdef Element
         Fe
         FeInv
         Area
+        nDoF
     end
 
     methods
@@ -32,8 +33,9 @@ classdef Element
             end
             obj.Binv =[dy(1),dx(1);dy(2),dx(2)]/(2*obj.Area);                                                            
             obj.Fe= @(x_hat) obj.B*x_hat+coordinates(3,:)'; 
-            obj.FeInv = @(x) obj.Binv*(x-coordinates(3,:)');             
-            for j=1:length(refElement.phi)
+            obj.FeInv = @(x) obj.Binv*(x-coordinates(3,:)');
+            obj.nDoF=length(refElement.phi);
+            for j=1:obj.nDoF
                 obj.phi{j}=@(x)  refElement.phi{j}(obj.FeInv(x));
                 obj.gradPhi{j}= @(x) obj.Binv'*refElement.gradPhi{j}(obj.FeInv(x));
             end

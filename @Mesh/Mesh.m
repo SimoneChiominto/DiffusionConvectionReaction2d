@@ -13,7 +13,7 @@ classdef Mesh < handle
         function obj = Mesh(Domain,BC,RefiningOptions)
             %MESH Construct an instance of this class
             %   Detailed explanation goes here
-            addpath('Mesh/Triangolatore/Long/bbtr30/')
+            addpath('@Mesh/Triangolatore/Long/bbtr30/')
             obj.geom = bbtr30(Domain,BC,RefiningOptions);
 
             % --------------------------------------------------
@@ -60,6 +60,8 @@ classdef Mesh < handle
             clear X I;
 
         end
+
+        []=P2(obj) %declare method in external file
 
         function area = getAreaMax(obj)
             %METHOD1 Summary of this method goes here

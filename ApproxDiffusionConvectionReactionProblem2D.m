@@ -38,6 +38,9 @@ classdef ApproxDiffusionConvectionReactionProblem2D < DiffusionConvectionReactio
             obj.exactSolution=problem.exactSolution;
             obj.mesh=mesh;
             obj.refElement=refElement;
+                if length(obj.refElement.phi)==6
+                    obj.mesh.P2()
+                end
             obj.error.L2norm=[];
             obj.error.H0seminorm=[];
             obj.error.LInfnorm=[];
@@ -76,19 +79,19 @@ classdef ApproxDiffusionConvectionReactionProblem2D < DiffusionConvectionReactio
             for e= 1:obj.mesh.geom.nelements.nTriangles
                 
                 %create the real element object
-                coordinates=obj.mesh.geom.elements.coordinates(obj.mesh.geom.elements.triangles(e,:),:);
+                coordinates=obj.mesh.geom.elements.coordinates(obj.mesh.geom.elements.triangles(e,1:3),:);
                 el=Element(coordinates,obj.refElement);
                 quadrature= @(f) quadrature_ref(@(x_hat) f(el.Fe(x_hat)) )*2*el.Area;
 
                 %for each vertex of the triangle
-                for j=1:3
+                for j=1:el.nDoF
                     jj=obj.mesh.geom.pivot.pivot(obj.mesh.geom.elements.triangles(e,j));
                     
                     %check if it is a degree of freedom
                     if jj>0 
                             
                         %for each vertex of the triangle
-                        for k=1:3
+                        for k=1:el.nDoF
                             kk=obj.mesh.geom.pivot.pivot(obj.mesh.geom.elements.triangles(e,k));
                             
                             diffusion= @(x) mu(x) .* el.gradPhi{k}(x)'*el.gradPhi{j}(x);
@@ -177,7 +180,9 @@ classdef ApproxDiffusionConvectionReactionProblem2D < DiffusionConvectionReactio
             end
             
             %add solution to vertices that are not degrees of freedom
-            for j=1:obj.mesh.geom.nelements.nVertexes
+            
+            obj.approxSolution=zeros(length(obj.mesh.geom.elements.coordinates),1);
+            for j=1:length(obj.mesh.geom.elements.coordinates)
                 jj=obj.mesh.geom.pivot.pivot(j);
                 if jj>0
                     obj.approxSolution(j)=sol(jj);
@@ -206,9 +211,11 @@ classdef ApproxDiffusionConvectionReactionProblem2D < DiffusionConvectionReactio
                     quadrature= @(f) quadrature_ref(@(x_hat) f(el.Fe(x_hat)) )*2*el.Area;
 
                     Ge=obj.mesh.geom.elements.triangles(e,:);
-                    u_approx= @(x) obj.approxSolution(Ge(1))*el.phi{1}(x) ...
-                        + obj.approxSolution(Ge(2))*el.phi{2}(x)...
-                        + obj.approxSolution(Ge(3))*el.phi{3}(x);
+
+                    u_approx= @(x) dot(obj.approxSolution(Ge),EvalCell(el.phi,x));
+                    %obj.approxSolution(Ge(1))*el.phi{1}(x) ...
+                    %    + obj.approxSolution(Ge(2))*el.phi{2}(x)...
+                    %    + obj.approxSolution(Ge(3))*el.phi{3}(x);
                     norm=norm+quadrature (@(x) (obj.exactSolution.u(x)-u_approx(x))^2);
 
                 end
@@ -238,9 +245,10 @@ classdef ApproxDiffusionConvectionReactionProblem2D < DiffusionConvectionReactio
 
                     Ge=obj.mesh.geom.elements.triangles(e,:);
 
-                    grad_u_approx= @(x) obj.approxSolution(Ge(1))*el.gradPhi{1}(x) ...
-                        + obj.approxSolution(Ge(2))*el.gradPhi{2}(x) ...
-                        + obj.approxSolution(Ge(3))*el.gradPhi{3}(x);
+                    grad_u_approx= @(x) EvalCell(el.gradPhi,x)*obj.approxSolution(Ge);
+                    %el.gradPhi{1}(x) ...
+                    %    + obj.approxSolution(Ge(2))*el.gradPhi{2}(x) ...
+                    %    + obj.approxSolution(Ge(3))*el.gradPhi{3}(x);
 
                     norm=norm+quadrature(@(x) sum((obj.exactSolution.uGrad(x) - grad_u_approx(x)).^2) );
                 end
@@ -282,6 +290,14 @@ classdef ApproxDiffusionConvectionReactionProblem2D < DiffusionConvectionReactio
         end
 
 
+    end
+end
+
+
+function out=EvalCell(cellArray,x)
+    out=zeros(length(cellArray{1}(x)),length(cellArray));
+    for i=1:length(cellArray)
+        out(:,i)=cellArray{i}(x);
     end
 end
 
