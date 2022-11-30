@@ -2,8 +2,8 @@ clear all
 %if(~exist('bbtr30'))
 %addpath('../triangolatore/Long/bbtr30')
 %addpath('../triangolatore/Long')
-addpath("Mesh")
-addpath("DiffusionConvectionReactionProblem2D")
+%addpath("@Mesh")
+%addpath("@DiffusionConvectionReactionProblem2D")
 disp('mesher added to the path')
 %end
 
@@ -100,13 +100,37 @@ mesh=Mesh(Domain,BC,RefiningOptions);
 % --------------------------------------------
 % creazione del elemento di riferimento (Courant)
 % --------------------------------------------
-courantEl.phi={@(x) x(1,:), @(x,y) x(2,:),@(x,y) 1-x(1,:)-x(2,:)};
+
+courantEl.phi={@(x) x(1,:), @(x) x(2,:),@(x) 1-x(1,:)-x(2,:)};
 courantEl.gradPhi={@(x) [1;0], @(x) [0;1],@(x) [-1;-1]};
+N1=@(x) x(1,:);
+N2=@(x) x(2,:);
+N3=@(x) 1-x(1,:)-x(2,:);
+grad_N1=[1;0];
+grad_N2=[0;1];
+grad_N3=[-1;-1];
+
+P2El.phi={@(x) 2*N1(x).*(N1(x)-0.5),...
+          @(x) 2*N2(x).*(N2(x)-0.5),...
+          @(x) 2*N3(x).*(N3(x)-0.5),...
+          @(x) 4*N2(x).*N1(x),...
+          @(x) 4*N2(x).*N3(x)...
+          @(x) 4*N1(x).*N3(x),...#elemento 4
+          };
+
+P2El.gradPhi={@(x) grad_N1*(4*N1(x)-1),...
+              @(x) grad_N2*(4*N2(x)-1),...
+              @(x) grad_N3*(4*N3(x)-1),...
+              @(x) 4*(grad_N2*N1(x)+grad_N1*N2(x)),...
+              @(x) 4*(grad_N2*N3(x)+grad_N3*N2(x))...
+              @(x) 4*(grad_N1*N3(x)+grad_N3*N1(x)),...#elemento 4
+              };
+
 
 % --------------------------------------------
 % creazione dell'istanza del problema approssimato
 % --------------------------------------------
-approx_problem=ApproxDiffusionConvectionReactionProblem2D(problem,mesh,courantEl);
+approx_problem=ApproxDiffusionConvectionReactionProblem2D(problem,mesh,P2El);
 
 
 % --------------------------------------------
@@ -129,7 +153,7 @@ approx_problem.getLInfError()
 % -------------------------------------------
 
 
-AreaValue=[0.05 0.03 0.02 0.01 0.008 0.007 0.005 0.003 0.002 0.001 0.0005];% 0.002];
+AreaValue=[0.05 0.03 0.02 0.01 0.008 0.007]% 0.005 0.003 0.002];% 0.001 0.0005];% 0.002];
 max_k=length(AreaValue);
 
 for k=1:max_k
@@ -137,7 +161,7 @@ for k=1:max_k
     RefiningOptions.AreaValue  = AreaValue(k);
     mesh=Mesh(problem.domain,problem.BC,RefiningOptions);
     k
-    approx_problems(k)=ApproxDiffusionConvectionReactionProblem2D(problem,mesh,courantEl);
+    approx_problems(k)=ApproxDiffusionConvectionReactionProblem2D(problem,mesh,P2El);
     tic
     approx_problems(k).generateLinearSystem();
     toc
@@ -149,7 +173,7 @@ for k=1:max_k
     
     L2_error(k)=approx_problems(k).getL2Error();
     H0_error(k)=approx_problems(k).getH0Error();
-    Linf_error(k)=approx_problems(k).getLInfError();
+    %Linf_error(k)=approx_problems(k).getLInfError();
 
     h(k)=approx_problems(k).mesh.getDiamMax();
     Area(k)=approx_problems(k).mesh.getAreaMax();
@@ -161,9 +185,9 @@ end
 polyfit(log(h),log(L2_error),1)
 figure 
 loglog(h,L2_error,"o")
-polyfit(log(h),log(Linf_error),1)
-figure 
-loglog(h,Linf_error,"o")
+%polyfit(log(h),log(Linf_error),1)
+%figure 
+%loglog(h,Linf_error,"o")
 polyfit(log(h),log(H0_error),1)
 figure 
 loglog(h,H0_error,"o")
