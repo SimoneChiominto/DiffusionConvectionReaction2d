@@ -1,4 +1,6 @@
-clear all
+%clear all
+close all
+%clc
 %if(~exist('bbtr30'))
 %addpath('../triangolatore/Long/bbtr30')
 %addpath('../triangolatore/Long')
@@ -130,7 +132,7 @@ P2El.gradPhi={@(x) grad_N1*(4*N1(x)-1),...
 % --------------------------------------------
 % creazione dell'istanza del problema approssimato
 % --------------------------------------------
-approx_problem=ApproxDiffusionConvectionReactionProblem2D(problem,mesh,P2El);
+approx_problem=ApproxDiffusionConvectionReactionProblem2D(problem,mesh,courantEl);
 
 
 % --------------------------------------------
@@ -151,9 +153,9 @@ approx_problem.getLInfError()
 % -------------------------------------------
 % verifico ordine di convergenza dell'errore
 % -------------------------------------------
+%%
 
-
-AreaValue=[0.05 0.03 0.02 0.01 0.008 0.007]% 0.005 0.003 0.002];% 0.001 0.0005];% 0.002];
+AreaValue=[0.05 0.03 0.02 0.01 0.008 0.007 0.005 0.003 0.002];% 0.001 0.0005];% 0.002];
 max_k=length(AreaValue);
 
 for k=1:max_k
@@ -205,7 +207,6 @@ loglog(n_dof,L2_error)
 polyfit(log(n_dof),log(H0_error),1)
 figure 
 loglog(n_dof,H0_error)
-
 
 
 

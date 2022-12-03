@@ -73,8 +73,8 @@ classdef ApproxDiffusionConvectionReactionProblem2D < DiffusionConvectionReactio
             %count=0;
             %countD=0;
 
-            quadrature_ref= @(f) 1/6*(f([0;1/2])+f([1/2;0])+f([1/2;1/2]));
-
+            %quadrature_ref= @(f) 1/6*(f([0;1/2])+f([1/2;0])+f([1/2;1/2]));
+            
             %for each triangle
             for e= 1:obj.mesh.geom.nelements.nTriangles
                 
@@ -203,7 +203,7 @@ classdef ApproxDiffusionConvectionReactionProblem2D < DiffusionConvectionReactio
             end
             if isempty(obj.error.L2norm)
                 norm=0;
-                quadrature_ref= @(f) 1/6*(f([0;1/2])+f([1/2;0])+f([1/2;1/2]));
+                %quadrature_ref= @(f) 1/6*(f([0;1/2])+f([1/2;0])+f([1/2;1/2]));
 
                 for e= 1:obj.mesh.geom.nelements.nTriangles
                     coordinates=obj.mesh.geom.elements.coordinates(obj.mesh.geom.elements.triangles(e,:),:);
@@ -235,7 +235,7 @@ classdef ApproxDiffusionConvectionReactionProblem2D < DiffusionConvectionReactio
             end
             if isempty(obj.error.H0seminorm)
                 norm=0;
-                quadrature_ref= @(f) 1/6*(f([0;1/2])+f([1/2;0])+f([1/2;1/2]));
+                %quadrature_ref= @(f) 1/6*(f([0;1/2])+f([1/2;0])+f([1/2;1/2]));
 
                 for e= 1:obj.mesh.geom.nelements.nTriangles
 
@@ -268,7 +268,7 @@ classdef ApproxDiffusionConvectionReactionProblem2D < DiffusionConvectionReactio
                 error("no exact solution known")
             end
             if isempty(obj.error.LInfnorm)
-                norm=max(abs(obj.approxSolution-obj.exactSolution.u(obj.mesh.geom.elements.coordinates')));
+                norm=max(abs(obj.approxSolution-obj.exactSolution.u(obj.mesh.geom.elements.coordinates')'));
                 obj.error.LInfnorm=norm;
                 return
             end
@@ -283,11 +283,17 @@ classdef ApproxDiffusionConvectionReactionProblem2D < DiffusionConvectionReactio
                 obj.solve();
             end
             fig=figure;
-            n_vert=obj.mesh.geom.nelements.nVertexes;
-            trisurf(obj.mesh.geom.elements.triangles(:,1:3),...
-                obj.mesh.geom.elements.coordinates(1:n_vert,1),...
-                obj.mesh.geom.elements.coordinates(1:n_vert,2),...
-                obj.approxSolution(1:n_vert))
+            %n_vert=obj.mesh.geom.nelements.nVertexes;
+            %trisurf(obj.mesh.geom.elements.triangles(:,1:3),...
+                %obj.mesh.geom.elements.coordinates(1:n_vert,1),...
+                %obj.mesh.geom.elements.coordinates(1:n_vert,2),...
+                %obj.approxSolution(1:n_vert))
+            pdeplot(obj.mesh.geom.elements.coordinates',...
+                    obj.mesh.geom.elements.triangles',...
+                    "ZData",obj.approxSolution,...
+                    "XYData",obj.approxSolution, ...
+                    "Mesh","on","ColorMap","winter",...
+                    "XYStyle","flat")
         end
 
 
