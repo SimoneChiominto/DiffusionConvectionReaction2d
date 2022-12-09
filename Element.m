@@ -8,6 +8,7 @@ classdef Element
         Binv
         phi
         gradPhi
+        hessPhi
         Fe
         FeInv
         Area
@@ -38,8 +39,17 @@ classdef Element
             for j=1:obj.nDoF
                 obj.phi{j}=@(x)  refElement.phi{j}(obj.FeInv(x));
                 obj.gradPhi{j}= @(x) obj.Binv'*refElement.gradPhi{j}(obj.FeInv(x));
+                obj.hessPhi{j}= @(x) obj.B'*refElement.hessPhi{j}(x)*obj.B;
             end
 
+        end
+
+        function h_E=getMaxLength(obj)
+            len(1)=norm(obj.coordinates(3,:)-obj.coordinates(2,:));
+            len(2)=norm(obj.coordinates(1,:)-obj.coordinates(3,:));
+            len(3)=norm(obj.coordinates(2,:)-obj.coordinates(1,:));
+            h_E=max(len);
+            return
         end
 
     end
