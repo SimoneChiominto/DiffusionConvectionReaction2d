@@ -9,7 +9,7 @@ clc
 disp('mesher added to the path')
 %end
 
-AreaValue=0.0001;
+AreaValue=0.01;
 
 
 % -------------------------------
@@ -65,15 +65,15 @@ BC.Segments.Segment = [];
 % --------------------------------------------
 % creazione dell'istanza del problema differenziale
 % --------------------------------------------
-mu=@(x) 1*ones(size(x(1,:)));
-beta=@(x) 10000*ones(2,length(x(1,:)));
-gamma=@(x) 10000000* ones(size(x(1,:)));
+mu=@(x) 0.0001*ones(size(x(1,:)));
+beta=@(x) 0*ones(2,length(x(1,:)));
+gamma=@(x) 100000* ones(size(x(1,:)));
 f= @(x) 32*(x(1,:).*(1-x(1,:)) + x(2,:).*(1-x(2,:))); % forcing term
 
 boundaryFunctions{1} = @(x) zeros(size(x(1,:)));
 boundaryFunctions{2} = @(x) zeros(size(x(1,:)));
 boundaryFunctions{4} = @(x) zeros(size(x(1,:)));
-boundaryFunctions{3} = @(x) zeros(size(x(1,:)));
+boundaryFunctions{3} = @(x) x(1,:)+ x(2,:).^2+zeros(size(x(1,:)));
 
 u= @(x) 16*x(1,:).*(1-x(1,:)).*x(2,:).*(1-x(2,:)); 
 grad_u = @(x)[16*(1-2*x(1,:)).*x(2,:).*(1-x(2,:)); 16*x(1,:).*(1-x(1,:)).*(1-2*x(2,:))];
@@ -150,7 +150,9 @@ approx_problem=ApproxDiffusionConvectionReactionProblem2D(problem,mesh,courantEl
 % --------------------------------------------
 % risoluzione del problema approssimato
 % --------------------------------------------
+tic
 approx_problem.generateLinearSystem();
+toc
 approx_problem.solve()
 approx_problem.plot()
 
@@ -175,7 +177,7 @@ for k=1:max_k
     RefiningOptions.AreaValue  = AreaValue(k);
     mesh=Mesh(problem.domain,problem.BC,RefiningOptions);
     k
-    approx_problems(k)=ApproxDiffusionConvectionReactionProblem2D(problem,mesh,P2El);
+    approx_problems(k)=ApproxDiffusionConvectionReactionProblem2D(problem,mesh,courantEl);
     tic
     approx_problems(k).generateLinearSystem();
     toc

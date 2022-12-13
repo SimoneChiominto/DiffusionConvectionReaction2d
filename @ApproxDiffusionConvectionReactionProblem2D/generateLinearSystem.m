@@ -14,16 +14,17 @@ n_d=-min(obj.mesh.geom.pivot.pivot);
 %preallocate vectors ad matrices
 b=zeros(n_dof,1);
 b_n=zeros(n_dof,1);
-obj.stiffnessMatrix=spalloc(n_dof,n_dof,10*n_dof);
-Ad=spalloc(n_dof,n_d,10*n_dof);
-%JJ=zeros(10*n_dof,1);
-%KK=zeros(10*n_dof,1);
-%val=zeros(10*n_dof,1);
-%JJD=zeros(10*n_dof,1);
-%KKD=zeros(10*n_dof,1);
-%valD=zeros(10*n_dof,1);
-%count=0;
-%countD=0;
+%obj.stiffnessMatrix=spalloc(n_dof,n_dof,10*n_dof);
+%Ad=spalloc(n_dof,n_d,10*n_dof);
+
+JJ=zeros(3*18*n_dof,1);
+KK=zeros(3*18*n_dof,1);
+val=zeros(3*18*n_dof,1);
+JJ_D=zeros(10*n_dof,1);
+KK_D=zeros(10*n_dof,1);
+val_D=zeros(10*n_dof,1);
+count=1;
+countD=1;
 
 %quadrature_ref= @(f) 1/6*(f([0;1/2])+f([1/2;0])+f([1/2;1/2]));
 
@@ -52,27 +53,41 @@ for e= 1:obj.mesh.geom.nelements.nTriangles
 
                 %check if it is a degree of freedom
                 if kk>0
-                    %count=count+1;
-                    %JJ(count)=jj;
-                    %KK(count)=kk;
-                    %val(count)=quadrature(diffusion)+quadrature(convection)+quadrature(reaction);
                     [diff_correction,conv_correction]=obj.correctStiffnessConvection(el,k,j);
-                    obj.stiffnessMatrix(jj,kk)= obj.stiffnessMatrix(jj,kk)  ...
-                        +quadrature(diffusion)+quadrature(convection)...%+quadrature(reaction)...
+                    %count=count+1;
+                    JJ(count)=jj;
+                    KK(count)=kk;
+                    val(count)=quadrature(diffusion)+quadrature(convection)...+quadrature(reaction);
                         +diff_correction+conv_correction;
-                    obj.stiffnessMatrix(jj,jj)=obj.stiffnessMatrix(jj,jj)+quadrature(reaction);
+                    count=count+(val(count)~=0)*1;
+                    %[diff_correction,conv_correction]=obj.correctStiffnessConvection(el,k,j);
+                    %obj.stiffnessMatrix(jj,kk)= obj.stiffnessMatrix(jj,kk)  ...
+                    %    +quadrature(diffusion)+quadrature(convection)+quadrature(reaction)...
+                    %    +diff_correction+conv_correction;
+                    JJ(count)=jj;
+                    KK(count)=jj;
+                    val(count)=quadrature(reaction);
+                    count=count+(val(count)~=0)*1;
+                    %obj.stiffnessMatrix(jj,jj)=obj.stiffnessMatrix(jj,jj)+quadrature(reaction);
 
                 else
                     [diff_correction,conv_correction]=obj.correctStiffnessConvection(el,k,j);
-                    Ad(jj,-kk)= Ad(jj,-kk) +...
-                        +quadrature(diffusion)+quadrature(convection)...%+quadrature(reaction)...
-                        +diff_correction+conv_correction;
-                    obj.stiffnessMatrix(jj,jj)=obj.stiffnessMatrix(jj,jj)+quadrature(reaction);
+                    %Ad(jj,-kk)= Ad(jj,-kk) +...
+                    %    +quadrature(diffusion)+quadrature(convection)+quadrature(reaction)...
+                    %    +diff_correction+conv_correction;
+                    %obj.stiffnessMatrix(jj,jj)=obj.stiffnessMatrix(jj,jj)+quadrature(reaction);
                     %countD=countD+1;
-                    %JJ(countD)=jj;
-                    %KK(countD)=-kk;
-                    %val(count)=quadrature(diffusion)+quadrature(convection)+quadrature(reaction);
+                    
+                    JJ_D(countD)=jj;
+                    KK_D(countD)=-kk;
+                    val_D(countD)=quadrature(diffusion)+quadrature(convection)...+quadrature(reaction)...
+                        +diff_correction+conv_correction;
+                    countD=countD+(val_D(countD)~=0)*1;
 
+                    JJ(count)=jj;
+                    KK(count)=jj;
+                    val(count)=quadrature(reaction);
+                    count=count+(val(count)~=0)*1;
                 end %if kk>0
             end %for k=1:3
 
@@ -116,6 +131,8 @@ for i=1:length(obj.mesh.geom.pivot.Di)
     u_d(i)=g_d(obj.mesh.geom.elements.coordinates(obj.mesh.geom.pivot.Di(i,1),:)');
 end
 
+obj.stiffnessMatrix=sparse(JJ(1:count-1),KK(1:count-1),val(1:count-1),n_dof,n_dof);
+Ad=sparse(JJ_D(1:countD-1),KK_D(1:countD-1),val_D(1:countD-1),n_dof,n_d);
 %compute forcing vector
 obj.forcingVector=b-Ad*u_d+b_n;
 
