@@ -17,10 +17,10 @@ classdef DiffusionConvectionReactionProblem2D < handle
     %       - uGrad: function handle containing the gradient of the exact solution
     
     properties
-        mu              %diffusion
-        beta            %convection
-        gamma           %reaction
-        f               %forcing term
+        mu      {mustBeA(mu,["numeric","function_handle"])} %diffusion
+        beta    {mustBeA(beta,["numeric","function_handle"])} %convection
+        gamma   {mustBeA(gamma,["numeric","function_handle"])}       %reaction
+        f       {mustBeA(f,["numeric","function_handle"])}        %forcing term
         domain          %Domain defined as in the Mesher input
         BC              %BC defined as in the Mesher input with some other properties
         exactSolution   %exact solution and gradient of the exact solution
@@ -32,6 +32,7 @@ classdef DiffusionConvectionReactionProblem2D < handle
             %the class DiffusionConvectionReactionProblem2D
             %
             %See also DIFFUSIONCONVECTIONREACTIONPROBLEM2D  
+
             if nargin==0
                 return
             end

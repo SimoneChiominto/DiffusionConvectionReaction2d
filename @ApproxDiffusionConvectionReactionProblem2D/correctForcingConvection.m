@@ -12,9 +12,21 @@ end
 quadrature= @(f) quadrature_ref(@(x_hat) f(el.Fe(x_hat)) )*2*el.Area;
 
 h_E=el.getMaxLength();
-norm_beta_E = quadrature(@(x) norm(obj.beta(x))^2) .^0.5 ;
-norm_mu_E = quadrature(@(x) obj.mu(x).^2).^0.5;
+
+if isnumeric(obj.beta)
+    norm_beta_E = norm(obj.beta);
+else
+    norm_beta_E = quadrature(@(x) norm(obj.beta(x))) / el.Area ;
+end
+
+if isnumeric(obj.mu)
+    norm_mu_E = obj.mu;
+else
+    norm_mu_E = quadrature(@(x) obj.mu(x)) / el.Area;
+end
+
 Pe_h = m_k*norm_beta_E*h_E / (2*norm_mu_E);
+
 if Pe_h<=1
     tau_E=m_k*(h_E^2)/(4*norm_mu_E);
 else
@@ -22,7 +34,12 @@ else
 end
 %pensare se aggiungere sottoclasse o in generale un modo per salvare sta
 %roba
-forcing= @(x) obj.f(x) * dot(obj.beta(x),el.gradPhi{j}(x)); %di nuovo cosa brutta
+if isnumeric(obj.beta)
+    beta=@(x)obj.beta;
+else
+    beta=obj.beta;
+end
+forcing= @(x) obj.f(x) * dot(beta(x),el.gradPhi{j}(x)); %di nuovo cosa brutta
 
 f=tau_E*quadrature(forcing);
 

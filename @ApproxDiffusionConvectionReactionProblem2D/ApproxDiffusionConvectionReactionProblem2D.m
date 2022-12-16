@@ -46,7 +46,7 @@ classdef ApproxDiffusionConvectionReactionProblem2D < DiffusionConvectionReactio
             obj.error.LInfnorm=[];
         end
 
-        [] = generateLinearSystem(obj)
+        [] = generateLinearSystem(obj,options)
         [diff,conv] = correctStiffnessConvection(obj,el,k,j)
         f = correctForcingConvection(obj,el,j)
         
@@ -180,7 +180,7 @@ classdef ApproxDiffusionConvectionReactionProblem2D < DiffusionConvectionReactio
                     obj.mesh.geom.elements.triangles',...
                     "ZData",obj.approxSolution,...
                     "XYData",obj.approxSolution, ...
-                    "Mesh","on","ColorMap","winter",...
+                    "Mesh","on","ColorMap","autumn",...
                     "XYStyle","flat")
         end
 

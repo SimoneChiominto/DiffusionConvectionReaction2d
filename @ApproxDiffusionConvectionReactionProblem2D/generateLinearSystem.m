@@ -1,8 +1,15 @@
-function [] = generateLinearSystem(obj)
+function [] = generateLinearSystem(obj,options)
 %GENERATELINEARSYSTEM Compute Stiffness matrix and forcing
 %vector
-
+arguments
+    obj ApproxDiffusionConvectionReactionProblem2D
+    options.massLumping         logical = true
+    options.correctConvection   logical = true
+end
 %save useful variables
+if isnumeric(obj.beta) && all(obj.beta==[0;0])
+    options.correctConvection = false ;
+end
 f=obj.f;
 mu=obj.mu;
 beta=obj.beta;
@@ -17,16 +24,14 @@ b_n=zeros(n_dof,1);
 %obj.stiffnessMatrix=spalloc(n_dof,n_dof,10*n_dof);
 %Ad=spalloc(n_dof,n_d,10*n_dof);
 
-JJ=zeros(3*18*n_dof,1);
-KK=zeros(3*18*n_dof,1);
-val=zeros(3*18*n_dof,1);
+JJ=zeros((2*options.massLumping+1)*18*n_dof,1);
+KK=zeros((2*options.massLumping+1)*18*n_dof,1);
+val=zeros((2*options.massLumping+1)*18*n_dof,1);
 JJ_D=zeros(10*n_dof,1);
 KK_D=zeros(10*n_dof,1);
 val_D=zeros(10*n_dof,1);
 count=1;
 countD=1;
-
-%quadrature_ref= @(f) 1/6*(f([0;1/2])+f([1/2;0])+f([1/2;1/2]));
 
 %for each triangle
 for e= 1:obj.mesh.geom.nelements.nTriangles
@@ -34,6 +39,12 @@ for e= 1:obj.mesh.geom.nelements.nTriangles
     %create the real element object
     coordinates=obj.mesh.geom.elements.coordinates(obj.mesh.geom.elements.triangles(e,1:3),:);
     el=Element(coordinates,obj.refElement);
+
+    if any([isnumeric(mu),isnumeric(beta),isnumeric(gamma)]) && el.type=="P1"
+        dx=el.getdx();
+        dy=el.getdy();
+    end
+
     quadrature= @(f) quadrature_ref(@(x_hat) f(el.Fe(x_hat)) )*2*el.Area;
 
     %for each vertex of the triangle
@@ -45,54 +56,118 @@ for e= 1:obj.mesh.geom.nelements.nTriangles
 
             %for each vertex of the triangle
             for k=1:el.nDoF
-                kk=obj.mesh.geom.pivot.pivot(obj.mesh.geom.elements.triangles(e,k));
+                kk=obj.mesh.geom.pivot.pivot(obj.mesh.geom.elements.triangles(e,k));        
+                    
+                if isnumeric(mu) && el.type~="P1"
+                    diffusion= @(x) mu .* el.gradPhi{k}(x)'*el.gradPhi{j}(x);
+                elseif isa(mu,"function_handle")
+                    diffusion= @(x) mu(x) .* el.gradPhi{k}(x)'*el.gradPhi{j}(x);
+                end
 
-                diffusion= @(x) mu(x) .* el.gradPhi{k}(x)'*el.gradPhi{j}(x);
-                convection = @(x) beta(x)' * el.gradPhi{k}(x) * el.phi{j}(x);
-                reaction= @(x) gamma(x) * el.phi{k}(x) * el.phi{j}(x);
+                if isnumeric(beta) && el.type~="P1"
+                    convection = @(x) beta' * el.gradPhi{k}(x) * el.phi{j}(x);
+                elseif isa(beta,"function_handle")
+                    convection = @(x) beta(x)' * el.gradPhi{k}(x) * el.phi{j}(x);
+                end
+
+                if isnumeric(gamma) && el.type~="P1"
+                    reaction= @(x) gamma * el.phi{k}(x) * el.phi{j}(x);
+                elseif isa(gamma,"function_handle")
+                    reaction= @(x) gamma(x) * el.phi{k}(x) * el.phi{j}(x);
+                end
 
                 %check if it is a degree of freedom
                 if kk>0
-                    [diff_correction,conv_correction]=obj.correctStiffnessConvection(el,k,j);
-                    %count=count+1;
+                    if options.correctConvection
+                        [diff_correction,conv_correction]=obj.correctStiffnessConvection(el,k,j);
+                    else
+                        diff_correction=0;
+                        conv_correction=0;
+                    end
+
+                    if isnumeric(mu) && el.type=="P1"
+                        diffusion_component= mu * (dy(k)*dy(j)+dx(k)*dx(j))/(4*el.Area);
+                    else
+                        diffusion_component=quadrature(diffusion);
+                    end
+
+                    if isnumeric(beta) && el.type=="P1"
+                        convection_component= (beta(1)*dy(k)+beta(2)*dx(k))/6;
+                    else
+                        convection_component=quadrature(convection);
+                    end
+
+                    if isnumeric(gamma) && el.type=="P1"
+                        reaction_component=(gamma*el.Area*(1+(j==k)))/12;
+                    else
+                        reaction_component=quadrature(reaction);
+                    end
+                    
+                    
                     JJ(count)=jj;
                     KK(count)=kk;
-                    val(count)=quadrature(diffusion)+quadrature(convection)...+quadrature(reaction);
+                    val(count)=diffusion_component+convection_component...
+                        +(~options.massLumping)* reaction_component...
                         +diff_correction+conv_correction;
                     count=count+(val(count)~=0)*1;
-                    %[diff_correction,conv_correction]=obj.correctStiffnessConvection(el,k,j);
-                    %obj.stiffnessMatrix(jj,kk)= obj.stiffnessMatrix(jj,kk)  ...
-                    %    +quadrature(diffusion)+quadrature(convection)+quadrature(reaction)...
-                    %    +diff_correction+conv_correction;
-                    JJ(count)=jj;
-                    KK(count)=jj;
-                    val(count)=quadrature(reaction);
-                    count=count+(val(count)~=0)*1;
+                    
+                    if options.massLumping
+                        JJ(count)=jj;
+                        KK(count)=jj;
+                        val(count)=reaction_component;
+                        count=count+(val(count)~=0)*1;
+                    end
                     %obj.stiffnessMatrix(jj,jj)=obj.stiffnessMatrix(jj,jj)+quadrature(reaction);
 
                 else
-                    [diff_correction,conv_correction]=obj.correctStiffnessConvection(el,k,j);
-                    %Ad(jj,-kk)= Ad(jj,-kk) +...
-                    %    +quadrature(diffusion)+quadrature(convection)+quadrature(reaction)...
-                    %    +diff_correction+conv_correction;
-                    %obj.stiffnessMatrix(jj,jj)=obj.stiffnessMatrix(jj,jj)+quadrature(reaction);
-                    %countD=countD+1;
+                    if options.correctConvection
+                        [diff_correction,conv_correction]=obj.correctStiffnessConvection(el,k,j);
+                    else
+                        diff_correction=0;
+                        conv_correction=0;
+                    end
+
+                    if isnumeric(mu) && el.type=="P1"
+                        diffusion_component= mu * (dy(k)*dy(j)+dx(k)*dx(j))/(4*el.Area);
+                    else
+                        diffusion_component=quadrature(diffusion);
+                    end
+
+                    if isnumeric(beta) && el.type=="P1"
+                        convection_component= (beta(1)*dy(k)+beta(2)*dx(k))/6;
+                    else
+                        convection_component=quadrature(convection);
+                    end
+
+                    if isnumeric(gamma) && el.type=="P1"
+                        reaction_component=(gamma*el.Area*(1+(j==k)))/12;
+                    else
+                        reaction_component=quadrature(reaction);
+                    end
+                    
                     
                     JJ_D(countD)=jj;
                     KK_D(countD)=-kk;
-                    val_D(countD)=quadrature(diffusion)+quadrature(convection)...+quadrature(reaction)...
+                    val_D(countD)=diffusion_component+convection_component...
+                        +(~options.massLumping)* reaction_component...
                         +diff_correction+conv_correction;
                     countD=countD+(val_D(countD)~=0)*1;
-
-                    JJ(count)=jj;
-                    KK(count)=jj;
-                    val(count)=quadrature(reaction);
-                    count=count+(val(count)~=0)*1;
+                    
+                    if options.massLumping
+                        JJ(count)=jj;
+                        KK(count)=jj;
+                        val(count)=reaction_component;
+                        count=count+(val(count)~=0)*1;
+                    end
                 end %if kk>0
             end %for k=1:3
 
             forcing_term= @(x) f(x)* el.phi{j}(x);
-            f_correction=obj.correctForcingConvection(el,j);
+            if options.correctConvection
+                f_correction=obj.correctForcingConvection(el,j);
+            else
+                f_correction=0;
+            end
             b(jj) = b(jj)...
                 +quadrature(forcing_term)+f_correction;
 

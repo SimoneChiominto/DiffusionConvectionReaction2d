@@ -13,6 +13,7 @@ classdef Element
         FeInv
         Area
         nDoF
+        type
     end
 
     methods
@@ -42,6 +43,13 @@ classdef Element
                 obj.hessPhi{j}= @(x) obj.B'*refElement.hessPhi{j}(x)*obj.B;
             end
 
+            switch obj.nDoF
+                case 3
+                    obj.type="P1";
+                case 6
+                    obj.type="P2";
+            end
+
         end
 
         function h_E=getMaxLength(obj)
@@ -49,6 +57,20 @@ classdef Element
             len(2)=norm(obj.coordinates(1,:)-obj.coordinates(3,:));
             len(3)=norm(obj.coordinates(2,:)-obj.coordinates(1,:));
             h_E=max(len);
+            return
+        end
+
+        function dx=getdx(obj)
+            dx(1) = obj.coordinates(3,1)-obj.coordinates(2,1);
+            dx(2) = obj.coordinates(1,1)-obj.coordinates(3,1);
+            dx(3) = obj.coordinates(2,1)-obj.coordinates(1,1);
+            return
+        end
+
+        function dy=getdy(obj)
+            dy(1) = obj.coordinates(2,2)-obj.coordinates(3,2);
+            dy(2) = obj.coordinates(3,2)-obj.coordinates(1,2);
+            dy(3) = obj.coordinates(1,2)-obj.coordinates(2,2);
             return
         end
 
