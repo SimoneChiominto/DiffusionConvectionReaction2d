@@ -4,3 +4,9 @@
 *.toc
 *.gz
 Documentation/Example.m
+test/results_neumannP1.mat
+test/results_neumannP2.mat
+test/results_parabolicP1.mat
+test/results_parabolicP2.mat
+test/resultsP1.mat
+test/resultsP1.mat
