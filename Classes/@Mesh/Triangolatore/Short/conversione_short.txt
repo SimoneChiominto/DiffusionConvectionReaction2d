@@ -1,0 +1,33 @@
+%geom.elements.triangles = TV;
+geom.obj.T = TV;
+
+%geom.elements.coordinates = V;
+geom.obj.P = V;
+
+%geom.elements.borders = B;
+geom.obj.E = B;
+
+%geom.elements.neighbourhood = TT;
+geom.obj.Neigh = TT;
+
+%geom.elements.vertexesneighbourhood = VB;
+geom.obj.VNeigh = VB;
+
+%geom.nelements.nTriangles = nT;
+geom.Nobj.N_ele = nT;
+
+%geom.nelements.nBorders = nB;
+geom.Nobj.N_edge = nB;
+
+%geom.nelements.nVertexes = nV;
+geom.Nobj.N_node = nV;
+
+%geom.pivot.nodelist = Nodelist;
+geom.piv.nlist = Nodelist;
+
+%geom.pivot.Di = Di;
+geom.piv.Di = Di;
+
+%geom.pivot.Ne = Ne;
+geom.piv.Ne = Ne;
+

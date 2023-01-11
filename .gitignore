@@ -1,0 +1,6 @@
+*.asv
+*.tex
+*.aux
+*.toc
+*.gz
+Documentation/Example.m
