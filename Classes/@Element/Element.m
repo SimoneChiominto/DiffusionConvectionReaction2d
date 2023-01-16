@@ -40,7 +40,7 @@ classdef Element
             for j=1:obj.nDoF
                 obj.phi{j}=@(x)  refElement.phi{j}(obj.FeInv(x));
                 obj.gradPhi{j}= @(x) obj.Binv'*refElement.gradPhi{j}(obj.FeInv(x));
-                obj.hessPhi{j}= @(x) obj.B'*refElement.hessPhi{j}(x)*obj.B;
+                obj.hessPhi{j}= @(x) obj.Binv'*refElement.hessPhi{j}(obj.FeInv(x))*obj.Binv;
             end
 
             switch obj.nDoF

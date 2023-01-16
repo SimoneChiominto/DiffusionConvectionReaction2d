@@ -166,24 +166,42 @@ classdef ApproxDiffusionConvectionReactionProblem2D < DiffusionConvectionReactio
 
 
 
-        function fig=plot(obj)
+        function fig=plot(obj,options)
+            arguments
+                obj ApproxDiffusionConvectionReactionProblem2D
+                options.type ="solution"
+            end
             if isempty(obj.approxSolution)
                 obj.solve();
             end
             fig=figure;
-            %n_vert=obj.mesh.geom.nelements.nVertexes;
-            %trisurf(obj.mesh.geom.elements.triangles(:,1:3),...
-                %obj.mesh.geom.elements.coordinates(1:n_vert,1),...
-                %obj.mesh.geom.elements.coordinates(1:n_vert,2),...
-                %obj.approxSolution(1:n_vert))
-            pdeplot(obj.mesh.geom.elements.coordinates',...
-                    obj.mesh.geom.elements.triangles',...
-                    "ZData",obj.approxSolution,...
-                    "XYData",obj.approxSolution, ...
-                    "Mesh","on","ColorMap","autumn",...
-                    "XYStyle","flat")
-        end
 
+            if options.type=="solution"
+                z=obj.approxSolution;
+                color_map="autumn";
+            elseif options.type=="error"
+                if isempty(obj.exactSolution.u)
+                    error("No exact solution known")
+                end
+                z=obj.exactSolution.u(obj.mesh.geom.elements.coordinates')'-obj.approxSolution;
+                color_map="winter";
+            elseif options.type=="exact_solution"
+                if isempty(obj.exactSolution.u)
+                    error("No exact solution known")
+                end
+                z=obj.exactSolution.u(obj.mesh.geom.elements.coordinates')';
+                color_map="summer";
+            else
+                error("type not known, try asking solution or error")
+            end
+
+            pdeplot(obj.mesh.geom.elements.coordinates',...
+                obj.mesh.geom.elements.triangles',...
+                "ZData",z,...
+                "XYData",z, ...
+                "Mesh","on","ColorMap",color_map,...
+                "XYStyle","flat")
+        end
 
     end
 end
